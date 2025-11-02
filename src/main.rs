@@ -111,6 +111,38 @@ impl CircleAndRectangleProgram {
 impl<Message> Program<Message> for CircleAndRectangleProgram {
     type State = ();
 
+    fn update(
+            &self,
+            _state: &mut Self::State,
+            event: iced::widget::canvas::Event,
+            bounds: Rectangle,
+            cursor: mouse::Cursor,
+        ) -> (iced::widget::canvas::event::Status, Option<Message>) {
+        
+        let cursor_position = 
+            if let Some(position) = cursor.position_in(bounds) {
+                position
+            } else {
+                return (iced::widget::canvas::event::Status::Ignored, None);
+            };
+
+        match event {
+            iced::widget::canvas::Event::Mouse(Event::ButtonPressed::Left) => {
+            //mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                // Example interaction: print cursor position on left click
+                println!("Canvas clicked at position: {:?}", cursor_position);
+            }
+            //mouse::Event::ButtonReleased(mouse::Button::Left) => {
+            //    // Handle button release if needed
+            //    println!("Canvas release at position: {:?}", cursor_position);
+            //}
+        }
+
+        // No interaction implemented yet
+        (iced::widget::canvas::event::Status::Ignored, None)
+    }
+
+
     fn draw(
         &self,
         _state: &Self::State,
@@ -133,6 +165,9 @@ impl<Message> Program<Message> for CircleAndRectangleProgram {
         );
 
         // gradient for the rotating rectangle
+        // we have a diagonal rainbow gradient from red via green to blue
+        // green is a very small segment because the color is so dominant
+        // Note that the rainbow will not rotate with the rectangle. That would be an interesting new challenge.
         let gradient = Linear::new(
             Point::new(0.0, 0.0),
             Point::new(bounds.width, bounds.height),
