@@ -1,25 +1,21 @@
 use iced::{
     // Alignment,
     Color,
-    // Length,
     Point,
     Rectangle,
     Renderer,
-    // Subscription,
     Theme,
-    // Vector,
+    futures::io::Cursor,
     mouse,
-    widget::{
-        // Canvas, MouseArea, button,
-        canvas::{Event, Frame, Geometry, Path, Program, Stroke, Style, gradient::Linear},
-        // column, text,
-    },
+    widget::canvas::{Event, Frame, Geometry, Path, Program, Stroke, Style, gradient::Linear},
 };
 
 use iced::mouse::Event::ButtonPressed;
 use iced::mouse::Event::ButtonReleased;
 
 // use std::time::Duration;
+
+use crate::util::rotate_line;
 
 use super::util::rotate_point;
 
@@ -46,7 +42,33 @@ pub struct CicleAndLineState {
     line_end: Point,   // percentage of frame size
     line_width: f32,   // percentage of min(frame.width, frame.height)
     // line_rotate: f32,  // degrees
+    cursor_pos: Point,
     is_resizing: bool,
+}
+
+fn is_point_on_line(pt: &Point, line_start: &Point, line_end: &Point, tolerance: f32) -> bool {
+    if pt.x < line_start.x.min(line_end.x) || pt.x > line_start.x.max(line_end.x) {
+        return false;
+    }
+    if pt.y < line_start.y.min(line_end.y) - tolerance
+        || pt.y > line_start.y.max(line_end.y) + tolerance
+    {
+        return false;
+    }
+    true
+}
+
+fn rel_to_abs_pt(frame: &Frame, rel_point: &Point) -> Point {
+    Point::new(rel_point.x * frame.width(), rel_point.y * frame.height())
+}
+
+fn rel_to_abs_rct(frame: &Frame, rel_rect: &Rectangle) -> Rectangle {
+    Rectangle {
+        x: rel_rect.x * frame.width(),
+        y: rel_rect.y * frame.height(),
+        width: rel_rect.width * frame.width(),
+        height: rel_rect.height * frame.height(),
+    }
 }
 
 impl Default for CicleAndLineState {
@@ -57,6 +79,7 @@ impl Default for CicleAndLineState {
             line_end: Point::new(0.90, 0.40),
             line_width: 0.20,
             // line_rotate: 0.0, // degrees
+            cursor_pos: Point::new(0.0, 0.0),
             is_resizing: false,
         }
     }
@@ -81,13 +104,34 @@ impl<Message> Program<Message> for CircleAndLineProgram {
 
         match event {
             Event::Mouse(ButtonPressed(mouse::Button::Left)) => {
+                let center_point = Point::new(bounds.width / 2.0, bounds.height / 2.0);
+                println!("bounds: {:?} and center {:?}", bounds, bounds.center());
+                let rotated_cursor_position =
+                    rotate_point(&cursor_position, &center_point, &-self.rotation_angle);
+                let rel_cursor_position = Point::new(
+                    rotated_cursor_position.x / bounds.width,
+                    rotated_cursor_position.y / bounds.height,
+                );
+
+                state.cursor_pos = rel_cursor_position;
+
+                if is_point_on_line(
+                    &rel_cursor_position,
+                    &state.line_start,
+                    &state.line_end,
+                    state.line_width / 2.0,
+                ) {
+                    println!("Clicked on the line!");
+                } else {
+                    println!("Clicked outside the line!");
+                }
                 state.is_resizing = true;
-                state.line_width = 0.6;
+                //state.line_width = 0.6;
                 println!("Canvas clicked at position: {:?}", cursor_position);
             }
             Event::Mouse(ButtonReleased(mouse::Button::Left)) => {
                 state.is_resizing = false;
-                state.line_width = 0.2;
+                //state.line_width = 0.2;
                 println!("Canvas release at position: {:?}", cursor_position);
             }
             _ => {}
@@ -168,6 +212,20 @@ impl<Message> Program<Message> for CircleAndLineProgram {
                 width: frame_min * state.line_width,
                 ..Default::default()
             },
+        );
+
+        frame.stroke(
+            &Path::line(start_point, end_point),
+            Stroke {
+                style: Color::BLACK.into(),
+                width: frame_min * state.line_width,
+                ..Default::default()
+            },
+        );
+
+        frame.fill(
+            &Path::circle(rel_to_abs_pt(&frame, &state.cursor_pos), 10.0),
+            Color::from_rgb(1.0, 0.0, 0.0),
         );
 
         vec![frame.into_geometry()]
