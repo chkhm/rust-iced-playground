@@ -20,33 +20,51 @@ use crate::util::rotate_line;
 use super::util::rotate_point;
 
 /**
- *  size values are percentage of frame size.
- *  the rectangle center is in the middle of the frame the view will rotate it around this center point.
+ * This little program draws a circle and a line across the circle. The line starts and ends ath the default positions.
+ * Originally the line is horizontal but it rotates around the center of the frame.
+ *
+ * We also draw the position where the user clicked on the canvas as a red dot. The point is rotated back to the original coordinate system.
+ * If the user clicked on the line a message is printed to the console for debugging purposes.
+ *
+ *  Size values are percentage of frame size.
+ *  the line center is in the middle of the frame the view will rotate it around this center point.
  *  the circle is centered in the middle of the frame. It won't rotate. Maybe later when we fill it with some color pattern.
+ *
+ * The draw function scales to the relative sizes to the absolute frame sizes.
+ *
  */
 #[derive(Debug, Default)]
 pub struct CircleAndLineProgram {
     pub rotation_angle: f32, // degrees
 }
 
-impl CircleAndLineProgram {
-    pub fn new(rotation_angle: f32) -> Self {
-        Self { rotation_angle }
-    }
-}
-
+/**
+ * holds the state of the program.
+ */
 #[derive(Debug)]
 pub struct CicleAndLineState {
     circle_radius: f32,
     line_start: Point, // percentage of frame size
     line_end: Point,   // percentage of frame size
     line_width: f32,   // percentage of min(frame.width, frame.height)
-    // line_rotate: f32,  // degrees
-    cursor_pos: Point,
-    is_resizing: bool,
+    cursor_pos: Point, // position of the cursor in relative frame coordinates when clicked
+    is_resizing: bool, // user keeps the left mouse button pressed
 }
 
-fn is_point_on_line(pt: &Point, line_start: &Point, line_end: &Point, tolerance: f32) -> bool {
+/**
+ * This function checks if the given point is on the line defined by line_start and line_end within the given tolerance.
+ * Note that this only works for horizontal lines.
+ */
+fn is_point_on_horizontal_line(
+    pt: &Point,
+    line_start: &Point,
+    line_end: &Point,
+    tolerance: f32,
+) -> bool {
+    if (line_start.y - line_end.y).abs() > 0.001 {
+        println!("is_point_on_line: only horizontal lines are supported currently.");
+    }
+
     if pt.x < line_start.x.min(line_end.x) || pt.x > line_start.x.max(line_end.x) {
         return false;
     }
@@ -62,6 +80,7 @@ fn rel_to_abs_pt(frame: &Frame, rel_point: &Point) -> Point {
     Point::new(rel_point.x * frame.width(), rel_point.y * frame.height())
 }
 
+#[allow(dead_code)]
 fn rel_to_abs_rct(frame: &Frame, rel_rect: &Rectangle) -> Rectangle {
     Rectangle {
         x: rel_rect.x * frame.width(),
@@ -115,7 +134,7 @@ impl<Message> Program<Message> for CircleAndLineProgram {
 
                 state.cursor_pos = rel_cursor_position;
 
-                if is_point_on_line(
+                if is_point_on_horizontal_line(
                     &rel_cursor_position,
                     &state.line_start,
                     &state.line_end,
