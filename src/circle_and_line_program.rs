@@ -28,52 +28,51 @@ use super::util::rotate_point;
  *  the rectangle center is in the middle of the frame the view will rotate it around this center point.
  *  the circle is centered in the middle of the frame. It won't rotate. Maybe later when we fill it with some color pattern.
  */
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CircleAndLineProgram {
+    pub rotation_angle: f32, // degrees
+}
+
+impl CircleAndLineProgram {
+    pub fn new(rotation_angle: f32) -> Self {
+        Self { rotation_angle }
+    }
+}
+
+#[derive(Debug)]
+pub struct CicleAndLineState {
     circle_radius: f32,
     line_start: Point, // percentage of frame size
     line_end: Point,   // percentage of frame size
     line_width: f32,   // percentage of min(frame.width, frame.height)
-    line_rotate: f32,  // degrees
+    // line_rotate: f32,  // degrees
     is_resizing: bool,
 }
 
-impl Default for CircleAndLineProgram {
+impl Default for CicleAndLineState {
     fn default() -> Self {
         Self {
             circle_radius: 0.25, // 25% frame size
             line_start: Point::new(0.10, 0.40),
             line_end: Point::new(0.90, 0.40),
             line_width: 0.20,
-            line_rotate: 0.0, // degrees
+            // line_rotate: 0.0, // degrees
             is_resizing: false,
         }
     }
 }
 
-impl CircleAndLineProgram {
-    pub fn new(rotation: f32) -> Self {
-        Self {
-            circle_radius: 0.25,
-            line_start: Point::new(0.10, 0.40),
-            line_end: Point::new(0.90, 0.40),
-            line_width: 0.20, // percentage of the min(frame.width, frame.height)
-            line_rotate: rotation, // degrees 0 - 359
-            is_resizing: false, // true if the rectangle is being resized
-        }
-    }
-}
-
 impl<Message> Program<Message> for CircleAndLineProgram {
-    type State = ();
+    type State = CicleAndLineState;
 
     fn update(
         &self,
-        _state: &mut Self::State,
+        state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> (iced::widget::canvas::event::Status, Option<Message>) {
+        // state.line_rotate = self.rotation_angle;
         let cursor_position = if let Some(position) = cursor.position_in(bounds) {
             position
         } else {
@@ -82,9 +81,13 @@ impl<Message> Program<Message> for CircleAndLineProgram {
 
         match event {
             Event::Mouse(ButtonPressed(mouse::Button::Left)) => {
+                state.is_resizing = true;
+                state.line_width = 0.6;
                 println!("Canvas clicked at position: {:?}", cursor_position);
             }
             Event::Mouse(ButtonReleased(mouse::Button::Left)) => {
+                state.is_resizing = false;
+                state.line_width = 0.2;
                 println!("Canvas release at position: {:?}", cursor_position);
             }
             _ => {}
@@ -96,7 +99,7 @@ impl<Message> Program<Message> for CircleAndLineProgram {
 
     fn draw(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
@@ -111,7 +114,7 @@ impl<Message> Program<Message> for CircleAndLineProgram {
 
         // the circle int the center
         frame.fill(
-            &Path::circle(frame.center(), frame_min * self.circle_radius),
+            &Path::circle(frame.center(), frame_min * state.circle_radius),
             Color::from_rgb(0.6, 0.8, 1.0),
         );
 
@@ -143,26 +146,26 @@ impl<Message> Program<Message> for CircleAndLineProgram {
         //);
 
         let start_point = Point::new(
-            frame.width() * self.line_start.x,
-            frame.height() * self.line_start.y,
+            frame.width() * state.line_start.x,
+            frame.height() * state.line_start.y,
         );
 
         let end_point = Point::new(
-            frame.width() * self.line_end.x,
-            frame.height() * self.line_end.y,
+            frame.width() * state.line_end.x,
+            frame.height() * state.line_end.y,
         );
 
         frame.stroke(
             &Path::line(
-                rotate_point(&start_point, &frame.center(), &self.line_rotate),
-                rotate_point(&end_point, &frame.center(), &self.line_rotate),
+                rotate_point(&start_point, &frame.center(), &self.rotation_angle),
+                rotate_point(&end_point, &frame.center(), &self.rotation_angle),
                 //start_point,
                 //end_point,
             ),
             Stroke {
                 //style: Color::WHITE.into(),
                 style: Style::Gradient(gradient.into()),
-                width: frame_min * self.line_width,
+                width: frame_min * state.line_width,
                 ..Default::default()
             },
         );

@@ -31,6 +31,7 @@ struct MyApp {
     rotating: bool,
     rotation_angle: f32,
     mouse_state_text: String,
+    circle_and_line_program: CircleAndLineProgram,
 }
 
 impl MyApp {
@@ -48,7 +49,8 @@ impl MyApp {
                 self.rotating = !self.rotating;
             }
             Message::Tick => {
-                self.rotation_angle = (self.rotation_angle + 0.5) % 360.0;
+                self.rotation_angle = (self.rotation_angle + 0.25) % 360.0;
+                self.circle_and_line_program.rotation_angle = self.rotation_angle;
             }
             Message::AreaClicked => {} //todo!(),
         }
@@ -61,12 +63,12 @@ impl MyApp {
             text(format!("Rotation Angle: {:.2}°", self.rotation_angle)),
             text(self.mouse_state_text.clone()),
             "A Canvas",
-            MouseArea::new(
-                Canvas::new(CircleAndLineProgram::new(self.rotation_angle))
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-            )
-            .on_press(Message::AreaClicked),
+            //MouseArea::new(
+            Canvas::new(&self.circle_and_line_program)
+                // Canvas::new(CircleAndLineProgram::new(self.rotation_angle))
+                .width(Length::Fill)
+                .height(Length::Fill) //)
+                                      //.on_press(Message::AreaClicked),
         ]
         .align_x(Alignment::Center)
         .into()
