@@ -5,7 +5,6 @@ use iced::{
     Rectangle,
     Renderer,
     Theme,
-    futures::io::Cursor,
     mouse,
     widget::canvas::{Event, Frame, Geometry, Path, Program, Stroke, Style, gradient::Linear},
 };
@@ -14,8 +13,6 @@ use iced::mouse::Event::ButtonPressed;
 use iced::mouse::Event::ButtonReleased;
 
 // use std::time::Duration;
-
-use crate::util::rotate_line;
 
 use super::util::rotate_point;
 
@@ -48,7 +45,7 @@ pub struct CicleAndLineState {
     line_end: Point,   // percentage of frame size
     line_width: f32,   // percentage of min(frame.width, frame.height)
     cursor_pos: Point, // position of the cursor in relative frame coordinates when clicked
-    is_resizing: bool, // user keeps the left mouse button pressed
+    is_dragging: bool, // user keeps the left mouse button pressed
 }
 
 /**
@@ -76,6 +73,32 @@ fn is_point_on_horizontal_line(
     true
 }
 
+/**
+ * This function finds out if the given point is on a corner of the line. It returns the number of the corner
+ * (0=upper left, 1=upper right, 2=lower right, 3=lower left) or None if the point is not on a corner.
+ */
+fn is_point_on_line_corner(
+    pt: &Point,
+    line_start: &Point,
+    line_end: &Point,
+    width: f32,
+) -> Option<usize> {
+    let w_half = width / 2.0;
+    let corners = [
+        Point::new(line_start.x, line_start.y - w_half), // upper left
+        Point::new(line_end.x, line_end.y - w_half),     // upper right
+        Point::new(line_end.x, line_end.y + w_half),     // lower right
+        Point::new(line_start.x, line_start.y + w_half), // lower left
+    ];
+
+    for (i, corner) in corners.iter().enumerate() {
+        if (pt.x - corner.x).abs() <= 0.01 && (pt.y - corner.y).abs() <= 0.01 {
+            return Some(i);
+        }
+    }
+    None
+}
+
 fn rel_to_abs_pt(frame: &Frame, rel_point: &Point) -> Point {
     Point::new(rel_point.x * frame.width(), rel_point.y * frame.height())
 }
@@ -99,7 +122,7 @@ impl Default for CicleAndLineState {
             line_width: 0.20,
             // line_rotate: 0.0, // degrees
             cursor_pos: Point::new(0.0, 0.0),
-            is_resizing: false,
+            is_dragging: false,
         }
     }
 }
@@ -107,6 +130,19 @@ impl Default for CicleAndLineState {
 impl<Message> Program<Message> for CircleAndLineProgram {
     type State = CicleAndLineState;
 
+    /**
+     * Handles mouse events on the canvas.
+     *
+     * The method first calculates center point and the rotated relative cursor position.
+     *
+     * It then matches the event:
+     * - on left button press it checks if the click was on a corner or on the line and sets is_dragging accordingly
+     * - on left button release it resets is_dragging
+     * - on cursor move it updates the line position if is_dragging is true
+     *
+     * Note: Function returns "captured" if the event was handled (mouse click, release, move only if in dragging
+     *       mode), "ignored" otherwise.
+     */
     fn update(
         &self,
         state: &mut Self::State,
@@ -114,17 +150,19 @@ impl<Message> Program<Message> for CircleAndLineProgram {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> (iced::widget::canvas::event::Status, Option<Message>) {
-        // state.line_rotate = self.rotation_angle;
+        // Get the absolute cursor position - return if not available
         let cursor_position = if let Some(position) = cursor.position_in(bounds) {
             position
         } else {
             return (iced::widget::canvas::event::Status::Ignored, None);
         };
 
+        // --- process events
         match event {
+            // --- left button pressed
             Event::Mouse(ButtonPressed(mouse::Button::Left)) => {
+                // calculate point positions
                 let center_point = Point::new(bounds.width / 2.0, bounds.height / 2.0);
-                println!("bounds: {:?} and center {:?}", bounds, bounds.center());
                 let rotated_cursor_position =
                     rotate_point(&cursor_position, &center_point, &-self.rotation_angle);
                 let rel_cursor_position = Point::new(
@@ -134,6 +172,19 @@ impl<Message> Program<Message> for CircleAndLineProgram {
 
                 state.cursor_pos = rel_cursor_position;
 
+                // check if the click was on a corner
+                if let Some(corner_index) = is_point_on_line_corner(
+                    &rel_cursor_position,
+                    &state.line_start,
+                    &state.line_end,
+                    state.line_width,
+                ) {
+                    println!("Clicked on corner {}", corner_index);
+                    state.is_dragging = true;
+                    return (iced::widget::canvas::event::Status::Captured, None);
+                }
+
+                // check if the click was on the line (i.e. inside the line width)
                 if is_point_on_horizontal_line(
                     &rel_cursor_position,
                     &state.line_start,
@@ -141,22 +192,48 @@ impl<Message> Program<Message> for CircleAndLineProgram {
                     state.line_width / 2.0,
                 ) {
                     println!("Clicked on the line!");
+                    state.is_dragging = true;
                 } else {
                     println!("Clicked outside the line!");
                 }
-                state.is_resizing = true;
-                //state.line_width = 0.6;
                 println!("Canvas clicked at position: {:?}", cursor_position);
+                return (iced::widget::canvas::event::Status::Captured, None);
             }
+
+            // --- left button released
             Event::Mouse(ButtonReleased(mouse::Button::Left)) => {
-                state.is_resizing = false;
-                //state.line_width = 0.2;
+                state.is_dragging = false;
                 println!("Canvas release at position: {:?}", cursor_position);
+                return (iced::widget::canvas::event::Status::Captured, None);
             }
+
+            // --- cursor moved
+            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+                if state.is_dragging {
+                    let center_point = Point::new(bounds.width / 2.0, bounds.height / 2.0);
+                    let rotated_cursor_position =
+                        rotate_point(&cursor_position, &center_point, &-self.rotation_angle);
+                    let rel_cursor_position = Point::new(
+                        rotated_cursor_position.x / bounds.width,
+                        rotated_cursor_position.y / bounds.height,
+                    );
+                    let delta = Point::new(
+                        rel_cursor_position.x - state.cursor_pos.x,
+                        rel_cursor_position.y - state.cursor_pos.y,
+                    );
+                    state.line_start =
+                        Point::new(state.line_start.x + delta.x, state.line_start.y + delta.y);
+                    state.line_end =
+                        Point::new(state.line_end.x + delta.x, state.line_end.y + delta.y);
+                    state.cursor_pos = rel_cursor_position;
+                    return (iced::widget::canvas::event::Status::Captured, None);
+                }
+            }
+
             _ => {}
         }
 
-        // No interaction implemented yet
+        // No events were handled.
         (iced::widget::canvas::event::Status::Ignored, None)
     }
 
@@ -181,9 +258,9 @@ impl<Message> Program<Message> for CircleAndLineProgram {
             Color::from_rgb(0.6, 0.8, 1.0),
         );
 
-        // gradient for the rotating rectangle
-        // we have a diagonal rainbow gradient from red via green to blue
-        // green is a very small segment because the color is so dominant
+        // gradient for the rotating rectangle:
+        // - we have a diagonal rainbow gradient from red via green to blue
+        // - green is a very small segment because the color is so dominant
         // Note that the rainbow will not rotate with the rectangle. That would be an interesting new challenge.
         let gradient = Linear::new(
             Point::new(0.0, 0.0),
@@ -197,17 +274,7 @@ impl<Message> Program<Message> for CircleAndLineProgram {
         .add_stop(0.7, Color::from_rgb(0.0, 0.05, 0.75))
         .add_stop(1.0, Color::from_rgb(0.0, 0.0, 1.0));
 
-        // the rotating rectangle
-
-        //let angle = (i as f64 * 2.0 * PI) / self.edges as f64;
-        //let x = center_x + radius * angle.cos();
-        //let y = center_y + radius * angle.sin();
-
-        //let height_vector = Vector::new(
-        //    (frame_min * self.rect_height / 2.0) * self.rect_rotate.to_radians().cos(),
-        //    (frame_min * self.rect_height / 2.0) * self.rect_rotate.to_radians().sin(),
-        //);
-
+        // calculate line start and end points in absolute coordinates and draw it
         let start_point = Point::new(
             frame.width() * state.line_start.x,
             frame.height() * state.line_start.y,
@@ -218,12 +285,11 @@ impl<Message> Program<Message> for CircleAndLineProgram {
             frame.height() * state.line_end.y,
         );
 
+        // draw the rotated rectangle with gradient fill
         frame.stroke(
             &Path::line(
                 rotate_point(&start_point, &frame.center(), &self.rotation_angle),
                 rotate_point(&end_point, &frame.center(), &self.rotation_angle),
-                //start_point,
-                //end_point,
             ),
             Stroke {
                 //style: Color::WHITE.into(),
@@ -233,6 +299,7 @@ impl<Message> Program<Message> for CircleAndLineProgram {
             },
         );
 
+        // draw the line in non-rotated position for easier debugging
         frame.stroke(
             &Path::line(start_point, end_point),
             Stroke {
@@ -242,6 +309,7 @@ impl<Message> Program<Message> for CircleAndLineProgram {
             },
         );
 
+        // draw the clicked position as a red dot
         frame.fill(
             &Path::circle(rel_to_abs_pt(&frame, &state.cursor_pos), 10.0),
             Color::from_rgb(1.0, 0.0, 0.0),
