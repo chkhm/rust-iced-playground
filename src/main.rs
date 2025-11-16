@@ -8,6 +8,7 @@ use iced::{
 use std::time::Duration;
 
 mod circle_and_line_program;
+mod program_rectangle;
 mod util;
 
 use circle_and_line_program::CircleAndLineProgram;

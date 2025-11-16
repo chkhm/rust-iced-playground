@@ -21,7 +21,7 @@ use super::util::{
 };
 
 /**
- * This little program draws a circle and a line across the circle. The line starts and ends ath the default positions.
+ * This little program draws a circle and a line across the circle. The line starts and ends at the default positions.
  * Originally the line is horizontal but it rotates around the center of the frame.
  *
  * We also draw the position where the user clicked on the canvas as a red dot. The point is rotated back to the original coordinate system.
