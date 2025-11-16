@@ -1526,7 +1526,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "iced_hello-world"
+name = "iced_hello_world"
 version = "0.1.0"
 dependencies = [
  "iced",

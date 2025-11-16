@@ -16,9 +16,10 @@ use iced::mouse::Event::ButtonReleased;
 
 // use std::time::Duration;
 
-use super::util::{
-    is_point_on_horizontal_line, is_point_on_line_corner, rel_to_abs_pt, rotate_point,
-};
+use iced_hello_world::is_point_on_horizontal_line;
+use iced_hello_world::is_point_on_line_corner;
+use iced_hello_world::rel_to_abs_pt;
+use iced_hello_world::rotate_point;
 
 /**
  * This little program draws a circle and a line across the circle. The line starts and ends at the default positions.

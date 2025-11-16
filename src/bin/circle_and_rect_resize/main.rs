@@ -1,6 +1,6 @@
 use iced::{
     Alignment, Length, Subscription,
-    widget::{Canvas, MouseArea, button, column, text},
+    widget::{Canvas, button, column, text},
 };
 
 // ...existing code...
@@ -8,9 +8,6 @@ use iced::{
 use std::time::Duration;
 
 mod circle_and_line_program;
-mod program_rectangle;
-mod util;
-
 use circle_and_line_program::CircleAndLineProgram;
 
 fn main() -> iced::Result {
