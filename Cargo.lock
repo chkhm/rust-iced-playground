@@ -1530,6 +1530,7 @@ name = "iced_hello_world"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "sweeten",
 ]
 
 [[package]]
@@ -3116,6 +3117,15 @@ dependencies = [
  "skrifa",
  "yazi",
  "zeno",
+]
+
+[[package]]
+name = "sweeten"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "614922bb348fad791bfc2ac473f7ae0054372ad055501ec8e54aa5cca4aea270"
+dependencies = [
+ "iced",
 ]
 
 [[package]]

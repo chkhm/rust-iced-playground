@@ -1,5 +1,11 @@
+/**
+ * Experimental program that draws a circle and a line across it.
+ * The line can be resized by dragging its corners or moved by dragging the line itself.
+ * The line rotates around the center of the frame when "Play" is pressed.
+ *
+ * The goal is to experiment with mouse interaction on the canvas widget.
+ */
 // use std::os::macos::raw::stat;
-
 use iced::{
     // Alignment,
     Color,

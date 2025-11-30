@@ -2,6 +2,7 @@ use iced::{
     Alignment, Length, Subscription,
     widget::{Canvas, button, column, text},
 };
+use sweeten::widget::mouse_area::MouseArea;
 
 // ...existing code...
 
@@ -19,7 +20,7 @@ fn main() -> iced::Result {
 
 #[derive(Clone, Debug)]
 enum Message {
-    AreaClicked,
+    _AreaClicked,
     RotateStop,
     Tick,
 }
@@ -50,7 +51,7 @@ impl MyApp {
                 self.rotation_angle = (self.rotation_angle + 0.25) % 360.0;
                 self.circle_and_line_program.rotation_angle = self.rotation_angle;
             }
-            Message::AreaClicked => {} //todo!(),
+            Message::_AreaClicked => {} //todo!(),
         }
     }
 
@@ -61,12 +62,14 @@ impl MyApp {
             text(format!("Rotation Angle: {:.2}°", self.rotation_angle)),
             text(self.mouse_state_text.clone()),
             "A Canvas",
-            //MouseArea::new(
-            Canvas::new(&self.circle_and_line_program)
-                // Canvas::new(CircleAndLineProgram::new(self.rotation_angle))
-                .width(Length::Fill)
-                .height(Length::Fill) //)
-                                      //.on_press(Message::AreaClicked),
+            MouseArea::new(
+                Canvas::new(&self.circle_and_line_program)
+                    // Canvas::new(CircleAndLineProgram::new(self.rotation_angle))
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+            ) //.on_press_with(on_press)
+              //.on_pressed_with(),
+              //.on_press(Message::AreaClicked),
         ]
         .align_x(Alignment::Center)
         .into()
