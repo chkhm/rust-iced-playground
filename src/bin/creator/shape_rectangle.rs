@@ -10,8 +10,8 @@
 //
 
 use iced::{
-    Color, Point, Rectangle, Renderer, Size, Theme, mouse,
-    widget::canvas::{Event, Frame, Geometry},
+    Color, Point, Rectangle, Size, Theme, mouse,
+    widget::canvas::{Event, Frame},
 };
 
 #[derive(Clone, Debug, Default)]
@@ -78,11 +78,11 @@ impl RectangleShape {
         &self,
         state: &mut RectangleState,
         event: Event,
-        bounds: Rectangle,
+        _bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> bool {
         // Get the absolute cursor position - return if not available
-        let cursor_position = if let Some(position) = cursor.position_in(bounds) {
+        let cursor_position = if let Some(position) = cursor.position_in(_bounds) {
             position
         } else {
             return false;
@@ -137,13 +137,16 @@ impl RectangleShape {
 
     pub fn draw(
         &self,
+        // canvas_cache: &mut Cache,
         state: &RectangleState,
-        renderer: &Renderer,
+        frame: &mut Frame,
+        // _renderer: &Renderer,
         _theme: &Theme,
-        bounds: Rectangle,
+        // _bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<Geometry> {
-        let mut frame = Frame::new(renderer, bounds.size());
+    ) //-> Vec<Geometry>
+    {
+        // let mut frame = Frame::new(renderer, bounds.size());
 
         // Draw a rectangle
         let rect = iced::widget::canvas::Path::rectangle(
@@ -152,6 +155,6 @@ impl RectangleShape {
         );
         frame.fill(&rect, Color::from_rgb(0.0, 0.5, 0.5));
 
-        vec![frame.into_geometry()]
+        // vec![frame.into_geometry()]
     }
 }

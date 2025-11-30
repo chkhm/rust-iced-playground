@@ -1,6 +1,7 @@
 //use crate::message::Message;
 use crate::shape_rectangle::{RectangleShape, RectangleState};
-use iced::widget::canvas::{Cache, Event, Geometry, Program};
+use iced::widget::canvas::path::{Builder, Path};
+use iced::widget::canvas::{Cache, Event, Frame, Geometry, Program, stroke};
 use iced::{Point, Rectangle, Renderer, Theme, Vector, mouse};
 
 pub struct CanvasProgram {
@@ -54,6 +55,7 @@ impl<Message> Program<Message> for CanvasProgram {
                 .rectangle_shape
                 .update(&mut state.rectangle_state, event.clone(), bounds, cursor);
         if is_handled {
+            println!("rect handled");
             return (iced::widget::canvas::event::Status::Captured, None);
         }
 
@@ -75,13 +77,43 @@ impl<Message> Program<Message> for CanvasProgram {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        let g: Vec<Geometry> =
-            state
-                .rectangle_shape
-                .draw(&state.rectangle_state, renderer, theme, bounds, cursor);
+        let mut frame = Frame::new(renderer, bounds.size());
+        frame.translate(state.pan_zoom_state.translation);
 
-        g
+        draw_grid(&mut frame, bounds);
+
+        state.rectangle_shape.draw(
+            // &mut self.canvas_cache,
+            &state.rectangle_state,
+            &mut frame,
+            // renderer,
+            theme,
+            // bounds,
+            cursor,
+        );
+        vec![frame.into_geometry()]
     }
+}
+
+// Helper function to draw a simple grid
+fn draw_grid(frame: &mut Frame, bounds: Rectangle) {
+    let min_x = (bounds.x / 50.0).floor() * 50.0;
+    let max_x = (bounds.x + bounds.width / 50.0).ceil() * 50.0;
+    let min_y = (bounds.y / 50.0).floor() * 50.0;
+    let max_y = (bounds.y + bounds.height / 50.0).ceil() * 50.0;
+
+    let grid = Path::new(|path_builder: &mut Builder| {
+        for x in (min_x as i32..max_x as i32).step_by(50) {
+            path_builder.move_to(Point::new(x as f32, bounds.y));
+            path_builder.line_to(Point::new(x as f32, bounds.y + bounds.height));
+        }
+        for y in (min_y as i32..max_y as i32).step_by(50) {
+            path_builder.move_to(Point::new(bounds.x, y as f32));
+            path_builder.line_to(Point::new(bounds.x + bounds.width, y as f32));
+        }
+    });
+
+    frame.stroke(&grid, stroke::Stroke::default());
 }
 
 #[derive(Debug, Clone, Copy)]
