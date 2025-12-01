@@ -43,17 +43,18 @@ impl<Message> Program<Message> for CanvasProgram {
     ) -> (iced::widget::canvas::event::Status, Option<Message>) {
         // Get the absolute cursor position - return if not available
         let cursor_position = if let Some(position) = cursor.position_in(bounds) {
-            position
+            position - state.pan_zoom_state.translation
         } else {
             return (iced::widget::canvas::event::Status::Ignored, None);
         };
 
         // Step 1: first check if one of the shapes captures the event
         // t.b.d
-        let is_handled =
-            state
-                .rectangle_shape
-                .update(&mut state.rectangle_state, event.clone(), bounds, cursor);
+        let is_handled = state.rectangle_shape.update(
+            &mut state.rectangle_state,
+            event.clone(),
+            cursor_position,
+        );
         if is_handled {
             println!("rect handled");
             return (iced::widget::canvas::event::Status::Captured, None);

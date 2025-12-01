@@ -74,20 +74,7 @@ impl RectangleState {
 }
 
 impl RectangleShape {
-    pub fn update(
-        &self,
-        state: &mut RectangleState,
-        event: Event,
-        _bounds: Rectangle,
-        cursor: mouse::Cursor,
-    ) -> bool {
-        // Get the absolute cursor position - return if not available
-        let cursor_position = if let Some(position) = cursor.position_in(_bounds) {
-            position
-        } else {
-            return false;
-        };
-
+    pub fn update(&self, state: &mut RectangleState, event: Event, cursor_position: Point) -> bool {
         // we might add more patterns in the future so kill clippy
         #[allow(clippy::single_match)]
         match event {
