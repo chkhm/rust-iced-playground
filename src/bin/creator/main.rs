@@ -25,8 +25,10 @@ Longterm concept:
 
 */
 
-use iced::widget::{Canvas, column};
-use iced::{Alignment, Length};
+use std::sync::Arc;
+
+use iced::widget::{Canvas, column, text};
+use iced::{Alignment, Length, Point};
 
 mod message;
 use message::Message;
@@ -47,15 +49,16 @@ fn main() -> iced::Result {
 struct CreatorApp {
     // canvas_cache: Cache,
     // canvas_programs: Vec<Box<dyn Program<Message, State = ()>>>,
+    cursor_pos: Point,
 }
 
 impl CreatorApp {
     fn update(&mut self, _message: Message) {
-        // let handled = self.pan_zoom_state.handle_message(message.clone());
-        // if handled {
-        //     // Invalidate the cache when the view changes
-        //     self.canvas_cache.clear();
-        // }
+        match _message {
+            Message::CanvasMouseMoved(cursor_pos) => {
+                self.cursor_pos = cursor_pos;
+            }
+        }
     }
 
     fn view(&self) -> iced::Element<'_, Message> {
@@ -69,8 +72,12 @@ impl CreatorApp {
         //    .on_release(Message::CanvaseMouseReleased)
         //    .on_move(Message::CanvasMouseMoved);
 
-        column!["Creator Canvas", c,]
-            .align_x(Alignment::Center)
-            .into()
+        column![
+            "Creator Canvas",
+            text(format!("({},{})", self.cursor_pos.x, self.cursor_pos.y)),
+            c,
+        ]
+        .align_x(Alignment::Center)
+        .into()
     }
 }

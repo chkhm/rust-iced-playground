@@ -1,3 +1,5 @@
+use core::panic::PanicMessage;
+
 /**
  * Experimental program that draws a circle and a line across it.
  * The line can be resized by dragging its corners or moved by dragging the line itself.

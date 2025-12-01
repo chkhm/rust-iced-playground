@@ -1,7 +1,7 @@
-//use crate::message::Message;
+use crate::message::Message;
 use crate::shape_rectangle::{RectangleShape, RectangleState};
 use iced::widget::canvas::path::{Builder, Path};
-use iced::widget::canvas::{Cache, Event, Frame, Geometry, Program, stroke};
+use iced::widget::canvas::{self, Cache, Event, Frame, Geometry, Program, stroke};
 use iced::{Point, Rectangle, Renderer, Theme, Vector, mouse};
 
 pub struct CanvasProgram {
@@ -31,7 +31,7 @@ pub struct CanvasState {
     rectangle_state: RectangleState,
 }
 
-impl<Message> Program<Message> for CanvasProgram {
+impl Program<Message> for CanvasProgram {
     type State = CanvasState;
 
     fn update(
@@ -57,7 +57,8 @@ impl<Message> Program<Message> for CanvasProgram {
         );
         if is_handled {
             println!("rect handled");
-            return (iced::widget::canvas::event::Status::Captured, None);
+            let message = Message::CanvasMouseMoved(cursor_position);
+            return (iced::widget::canvas::event::Status::Captured, Some(message));
         }
 
         // Step 2: check if PanZoomState handles it
@@ -65,9 +66,11 @@ impl<Message> Program<Message> for CanvasProgram {
             .pan_zoom_state
             .handle_message(event.clone(), cursor_position);
         if pan_zoom_handle_result {
-            return (iced::widget::canvas::event::Status::Captured, None);
+            let message = Message::CanvasMouseMoved(cursor_position);
+            return (iced::widget::canvas::event::Status::Captured, Some(message));
         }
-        (iced::widget::canvas::event::Status::Ignored, None)
+        let message = Message::CanvasMouseMoved(cursor_position);
+        (iced::widget::canvas::event::Status::Ignored, Some(message))
     }
 
     fn draw(
